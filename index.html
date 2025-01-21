@@ -1,0 +1,196 @@
+<!doctype html>
+<html class="no-js" lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BIP39 key splitter</title>
+  <link rel="stylesheet" href="css/bootstrap.css">
+  <link rel="stylesheet" href="css/app.css">
+  <meta name="description" content="">
+
+  <meta property="og:title" content="">
+  <meta property="og:type" content="">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+  <meta property="og:image:alt" content="">
+
+  <meta name="theme-color" content="#fafafa">
+</head>
+
+<body>
+
+<div class="container">
+  <section>
+    <h1>
+      BIP 39 secret splitter
+    </h1>
+    <p>
+      This tool uses the
+      <a href="https://en.wikipedia.org/wiki/One-time_pad" target="_blank">
+        one-time pad</a>
+      cryptographic method to split a
+      <a href="https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki"
+         target="_blank">BIP 39</a>
+      seed phrase into multiple encrypted key pairs (each consisting of an
+      <code>A</code> and <code>B</code> key). A complete pair (e.g.
+      <code>A1</code> and <code>B1</code>) must be combined to decrypt the
+      secret. Each key in a pair contains <b>no</b> information about the other
+      key.
+    </p>
+    <p>
+      This is designed to work offline and has 0 dependencies on any external
+      libraries.
+    </p>
+    <div class="alert alert-danger d-none" role="alert" data-online-alert>
+      <b>Warning:</b> you are online! For security, it is recommended that you
+      disconnect from the internet before inputting your seed phrase!
+    </div>
+    <hr class="text-secondary"/>
+  </section>
+  <section>
+    <h2>
+      Split a secret
+    </h2>
+    <form>
+      <p>
+        Only
+        <a
+          href="https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt"
+          target="_blank"
+        >
+          English BIP-39-compatible words
+        </a>
+        are allowed.
+      </p>
+      <label for="secret-input" class="form-label">
+        Enter your seed phrase below:
+      </label>
+      <textarea class="form-control" id="secret-input"
+                data-encrypt-input></textarea>
+      <div class="alert alert-danger d-none" role="alert"
+           data-encrypt-input-error>
+      </div>
+    </form>
+    <div class="cards-grid my-4" data-encrypt-outputs>
+      <div class="card" data-encrypt-output="A1">
+        <div class="card-header" data-card-header>
+          <span>A1</span>
+          <span class="text-secondary" data-card-message></span>
+        </div>
+        <div class="card-body">
+          <div data-card-content></div>
+        </div>
+      </div>
+      <div class="card" data-encrypt-output="A2">
+        <div class="card-header" data-card-header>
+          <span>A2</span>
+          <span class="text-secondary" data-card-message></span>
+        </div>
+        <div class="card-body">
+          <div data-card-content></div>
+        </div>
+      </div>
+      <div class="card" data-encrypt-output="B1">
+        <div class="card-header" data-card-header>
+          <span>B1</span>
+          <span class="text-secondary" data-card-message></span>
+        </div>
+        <div class="card-body">
+          <div data-card-content></div>
+        </div>
+      </div>
+      <div class="card" data-encrypt-output="B2">
+        <div class="card-header" data-card-header>
+          <span>B2</span>
+          <span class="text-secondary" data-card-message></span>
+        </div>
+        <div class="card-body">
+          <div data-card-content></div>
+        </div>
+      </div>
+    </div>
+    <small>
+      Make sure to
+      <a href="#storing">store</a>
+      these keys securely
+    </small>
+    <hr class="text-secondary"/>
+  </section>
+  <section>
+    <h2>
+      Reconstruct secret from a complete set
+    </h2>
+    <p>
+      Reconstruct the original secret below by pasting an <code>A</code>
+      and <code>B</code> key from the same pair (e.g. <code>A1</code> with
+      <code>B1</code> or <code>A2</code> with <code>B2</code>)
+    </p>
+    <form>
+      <label for="decrypt-input-A">
+        Key A
+      </label>
+      <textarea id="decrypt-input-A" class="form-control"
+                data-decrypt-input></textarea>
+      <br/>
+      <label for="decrypt-input-B">
+        Key B
+      </label>
+      <textarea id="decrypt-input-B" class="form-control"
+                data-decrypt-input></textarea>
+      <br/>
+      <div class="card w-100" data-decrypt-output>
+        <div class="card-header" data-card-header>
+          <span>Decrypted secret</span>
+          <span class="text-secondary" data-card-message></span>
+        </div>
+        <div class="card-body">
+          <div data-card-content></div>
+        </div>
+      </div>
+    </form>
+    <hr class="text-secondary"/>
+  </section>
+  <section>
+    <h4 id="storing">Storing</h4>
+    <p>
+      The encrypted keys (A1, A2, B1, and B2) should go into <b>3</b>
+      locations, with the following
+      arrangement of keys:
+    </p>
+    <ul>
+      <li>Location 1: A1, A2</li>
+      <li>Location 2: A1, B2</li>
+      <li>Location 3: B1, A2</li>
+    </ul>
+    <p>
+      This way, you can ensure that <b>any two
+      locations can produce a complete key pair and unlock the entire
+      secret</b>.
+    </p>
+  </section>
+  <hr class="text-secondary"/>
+  <p>
+    <small>
+      Based on
+      <a href="https://bitcoin.stackexchange.com/a/65434" target="_blank">
+        this answer</a>
+      from stack overflow.
+    </small>
+  </p>
+  <br/>
+</div>
+<template data-template="copy-action">
+  <a href="#" data-action="copy">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+         fill="currentColor" class="bi bi-copy" viewBox="0 0 16 16">
+      <path fill-rule="evenodd"
+            d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z"/>
+    </svg>
+  </a>
+</template>
+<script src="js/words.js"></script>
+<script src="js/app.js"></script>
+</body>
+
+</html>
