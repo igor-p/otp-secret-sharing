@@ -1,8 +1,5 @@
 // Solution taken from https://bitcoin.stackexchange.com/a/65434
 
-// snow town rural west grid resource chief lottery chunk crane always profit water zebra raise vacant fall zero sustain measure reward devote gun village
-// cd9ccaf67cb6676f09f42028a6481e55ef7dff2c4f83523ff76bc4fb8a7999ff
-
 // The regular % operator doesn't work as expected on negative numbers
 // e.g. -6 % 5 should be 4, but, in JS, it's -1
 // let n = -6; n.mod(5) === 4
