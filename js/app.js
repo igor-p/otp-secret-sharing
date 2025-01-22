@@ -16,16 +16,19 @@ const DOM = {
   encryptInput: document.querySelector("[data-encrypt-input]"),
   encryptInputError: document.querySelector("[data-encrypt-input-error]"),
   encryptOutputs: document.querySelector("[data-encrypt-outputs]"),
+  encryptOutputByLocation: document.querySelector("[data-encrypt-output-by-location]"),
+  encryptOutputsLocationCards: document.querySelector("[data-encrypt-output-locations]"),
+  allCardContents: document.querySelectorAll(`[data-encrypt-output] [data-card-content], [data-encrypt-output-by-location] [data-card-content]`),
   templateCopyLink: document.querySelector("template[data-template='copy-action']"),
   decryptInputs: document.querySelectorAll("[data-decrypt-input]"),
   decryptOutput: document.querySelector("[data-decrypt-output]"),
   onlineAlert: document.querySelector("[data-online-alert]"),
+  copyPlaceholders: document.querySelectorAll("[data-action-copy-placeholder]"),
 };
 
 
 function init() {
-  setupEncryptCardsCopyAction();
-  setupDecryptCardCopyAction();
+  setupCopyActions();
 
   // Watch the text input for the encryption flow
   DOM.encryptInput.addEventListener("input", handleEncryptInputChange);
@@ -44,85 +47,106 @@ function init() {
 
 init();
 
-function setupDecryptCardCopyAction() {
-  // Append copy icon to decrypt output card (i.e. where the decrypted seed phrase will appear)
-  const copyLink = DOM.templateCopyLink.content.cloneNode(true);
-  const cardHeader = DOM.decryptOutput.querySelector("[data-card-header]");
-  cardHeader.append(copyLink);
+function setupCopyActions() {
+  /*
+    Adding copy to clipboard functionality requires the following data attributes in the html:
+      * data-action-copy-container: contains everything
+      * data-action-copy-placeholder: where the copy icon link is going to go
+      * data-action-copy-content: the content wrapping the text that gets copied on click
+   */
+  DOM.copyPlaceholders.forEach(placeholder => {
+    const container = placeholder.closest("[data-action-copy-container]");
+    const content = container.querySelector("[data-action-copy-content]");
 
-  let timeout;
-  // Listener needs to be added after appending (no listeners on template fragments)
-  DOM.decryptOutput.querySelector("[data-action='copy']").addEventListener("click", async (evt) => {
-    evt.preventDefault();
-    const content = DOM.decryptOutput.querySelector("[data-card-content]");
-    await navigator.clipboard.writeText(content.innerText);
+    placeholder.append(DOM.templateCopyLink.content.cloneNode(true));
 
-    // show auto-disappearing message for user feedback that the copy button was clicked
-    const message = cardHeader.querySelector("[data-card-message]");
-    message.innerText = "Copied to clipboard!";
-    clearTimeout(timeout);
-    timeout = setTimeout(() => message.innerText = "", 3000)
+    // Allow for debounced action to auto-hide message after click (hide X seconds after last click)
+    // One per click icon/action
+    let timeout;
+
+    // Can't add listeners to template fragments; must add after appending
+    placeholder.querySelector("a").addEventListener("click", async (evt) => {
+      evt.preventDefault();
+      const link = evt.currentTarget;
+      const iconDefault = link.querySelector("[data-icon-default]");
+      const iconSuccess = link.querySelector("[data-icon-success]");
+
+      await navigator.clipboard.writeText(content.innerText);
+      link.classList.add("text-success");
+      iconDefault.classList.add("d-none");
+      iconSuccess.classList.remove("d-none");
+
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        link.classList.remove("text-success");
+        iconDefault.classList.remove("d-none");
+        iconSuccess.classList.add("d-none");
+      }, 3000)
+    });
+
   });
 }
 
-function setupEncryptCardsCopyAction() {
-  DOM.encryptOutputs.querySelectorAll("[data-card-header]").forEach(header => {
-    const copyAction = DOM.templateCopyLink.content.cloneNode(true)
-    header.append(copyAction);
+function handleEncryptInputChange(evt) {
+  console.log("handleChange");
+  // Clear error and outputs
+  setEncryptInputError(null);
+  DOM.allCardContents.forEach(el => el.innerText = "");
 
-    let timeout;
+  const words = evt.target.value.trim().split(/\s+/);
+  let cyphers = null;
+  try {
+    cyphers = splitSecret(words);
+  } catch (e) {
+    setEncryptInputError(e.message);
+  }
 
-    header.querySelector("[data-action='copy']").addEventListener("click", async (evt) => {
-      evt.preventDefault();
-      const card = evt.currentTarget.closest("[data-encrypt-output]");
-      const header = card.querySelector("[data-card-header]");
-      const content = card.querySelector("[data-card-content]");
+  if (!cyphers) {
+    return;
+  }
 
-      await navigator.clipboard.writeText(content.innerText);
-      const message = header.querySelector("[data-card-message]");
-      message.innerText = "Copied to clipboard!";
-      clearTimeout(timeout);
-      timeout = setTimeout(() => message.innerText = "", 3000)
-    });
+  // Clean up input
+  evt.target.value = words.join(" ");
+
+  // Fill segment-based output cards (A1, A2, etc)
+  ["A1", "A2", "B1", "B2"].forEach(label => {
+    const phrase = cyphers[label] ? cyphers[label].phrase : "";
+    const cardSelector = `[data-encrypt-output="${label}"]`
+    const card = DOM.encryptOutputs.querySelector(cardSelector);
+
+    if (!card) {
+      throw new Error(`Could not find element matching selector ${cardSelector}`)
+    }
+    const content = card.querySelector("[data-card-content]");
+    content.innerText = phrase;
+  })
+
+  const fillLocationOutput = (keys) => keys.map(key => `${key}:\n${cyphers[key].phrase}`)
+    .join("\n\n\n");
+
+  // Fill the location-based output cards (Location 1, Location 2, etc)
+  const keysByLocation = [
+    fillLocationOutput(["A1", "A2"]),
+    fillLocationOutput(["A1", "B2"]),
+    fillLocationOutput(["B1", "A2"]),
+  ];
+
+  keysByLocation.forEach((text, i) => {
+    const num = i + 1;
+    const container = document.querySelector(`[data-encrypt-output-location="${num}"]`);
+    container.querySelector("[data-card-content]").innerText = text;
   });
 }
 
 function handleDecryptInputsChange() {
   const [inputA, inputB] = [...DOM.decryptInputs].map(input => input.value);
   const result = decryptSecret(inputA, inputB);
-  if (result) {
-    DOM.decryptOutput.querySelector("[data-card-content]").innerText = result;
-  }
+  DOM.decryptOutput.querySelector("[data-card-content]").innerText = result || "";
 }
-
-function handleEncryptInputChange(evt) {
-  setEncryptInputError(null);
-
-  let cyphers = {};
-  try {
-    cyphers = splitSecret(evt.target.value);
-  } catch (e) {
-    setEncryptInputError(e.message);
-  }
-
-  DOM.encryptOutputs
-    .querySelectorAll(`[data-encrypt-output] [data-card-content]`)
-    .forEach(el => el.innerText = "");
-
-  ["A1", "A2", "B1", "B2"].forEach(label => {
-    const phrase = cyphers[label] ? cyphers[label].phrase : "";
-    const card = DOM.encryptOutputs.querySelector(`[data-encrypt-output="${label}"]`);
-    const content = card.querySelector("[data-card-content]");
-    content.innerText = phrase;
-  })
-}
-
 
 // Split a secret and return the split components
-function splitSecret(seedPhrase) {
-  if (!seedPhrase) return;
-
-  const seedWords = seedPhrase.trim().split(/\s+/);
+function splitSecret(seedWords) {
+  if (!seedWords || !seedWords.length) return null;
 
   // convert into array of 11-bit dictionary indexes (0 - 2047) of the words in the word list
   const S = seedWords.map(toDictionaryIndex);

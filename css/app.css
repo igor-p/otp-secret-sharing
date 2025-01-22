@@ -43,6 +43,10 @@ button:not(.icon) {
   gap: 16px;
 }
 
+.three_cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 
 .output-header {
   display: flex;
